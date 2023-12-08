@@ -1,75 +1,40 @@
-# [React](https://reactjs.org/) &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/facebook/react/blob/main/LICENSE) [![npm version](https://img.shields.io/npm/v/react.svg?style=flat)](https://www.npmjs.com/package/react) [![CircleCI Status](https://circleci.com/gh/facebook/react.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/facebook/react) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://reactjs.org/docs/how-to-contribute.html#your-first-pull-request)
+### Usage
+`cd react-app && npm i && npm run dev` 
 
-React is a JavaScript library for building user interfaces.
+`F5` 启动服务，即可在 vscode 中打断点调试源码. 
 
-* **Declarative:** React makes it painless to create interactive UIs. Design simple views for each state in your application, and React will efficiently update and render just the right components when your data changes. Declarative views make your code more predictable, simpler to understand, and easier to debug.
-* **Component-Based:** Build encapsulated components that manage their state, then compose them to make complex UIs. Since component logic is written in JavaScript instead of templates, you can easily pass rich data through your app and keep the state out of the DOM.
-* **Learn Once, Write Anywhere:** We don't make assumptions about the rest of your technology stack, so you can develop new features in React without rewriting existing code. React can also render on the server using Node and power mobile apps using [React Native](https://reactnative.dev/).
+#### 依赖安装失败
 
-[Learn how to use React in your project](https://reactjs.org/docs/getting-started.html).
+1. Electron 的下载：
 
-## Installation
+   electron 开了代理也可能安装失败。因此按照官网的方法，添加全局变量
 
-React has been designed for gradual adoption from the start, and **you can use as little or as much React as you need**:
+    ```shell
+    export ELECTRON_MIRROR="https://npmmirror.com/mirrors/electron/"
 
-* Use [Online Playgrounds](https://reactjs.org/docs/getting-started.html#online-playgrounds) to get a taste of React.
-* [Add React to a Website](https://reactjs.org/docs/add-react-to-a-website.html) as a `<script>` tag in one minute.
-* [Create a New React App](https://reactjs.org/docs/create-a-new-react-app.html) if you're looking for a powerful JavaScript toolchain.
+    # 一定要加v，electron官网未加找不到下载源
+    export ELECTRON_CUSTOM_DIR="v{{ version }}"
+    ```
 
-You can use React as a `<script>` tag from a [CDN](https://reactjs.org/docs/cdn-links.html), or as a `react` package on [npm](https://www.npmjs.com/package/react).
+2. optipng-bin、gifsicle
 
-## Documentation
+    ```shell
+    gifsicle pre-build test failed
+      
+    optipng pre-build test failed
+    ```
 
-You can find the React documentation [on the website](https://reactjs.org/).  
+   使用代理
 
-Check out the [Getting Started](https://reactjs.org/docs/getting-started.html) page for a quick overview.
+3. Protocol "https:" not supported. Expected "http:"
 
-The documentation is divided into several sections:
+   关了代理
 
-* [Tutorial](https://reactjs.org/tutorial/tutorial.html)
-* [Main Concepts](https://reactjs.org/docs/hello-world.html)
-* [Advanced Guides](https://reactjs.org/docs/jsx-in-depth.html)
-* [API Reference](https://reactjs.org/docs/react-api.html)
-* [Where to Get Support](https://reactjs.org/community/support.html)
-* [Contributing Guide](https://reactjs.org/docs/how-to-contribute.html)
 
-You can improve it by sending pull requests to [this repository](https://github.com/reactjs/reactjs.org).
+#### 关于调试源码的环境搭建
 
-## Examples
+1. `yarn build` 构建生成带有 sourcemap 的源码. (从网上扒了一个份 rollup/build.js 的脚本，可生成 sourcemap)
+   另外可参考 https://github.com/facebook/react/pull/26442 、https://github.com/facebook/react/pull/26446.
 
-We have several examples [on the website](https://reactjs.org/). Here is the first one to get you started:
+2. `npm create vite react-app --template`, 生成 react app, 将 `package.json` 中的 react、react-dom 下载地址改为本地。
 
-```jsx
-import { createRoot } from 'react-dom/client';
-
-function HelloMessage({ name }) {
-  return <div>Hello {name}</div>;
-}
-
-const root = createRoot(document.getElementById('container'));
-root.render(<HelloMessage name="Taylor" />);
-```
-
-This example will render "Hello Taylor" into a container on the page.
-
-You'll notice that we used an HTML-like syntax; [we call it JSX](https://reactjs.org/docs/introducing-jsx.html). JSX is not required to use React, but it makes code more readable and writing it feels like writing HTML. If you're using React as a `<script>` tag, read [this section](https://reactjs.org/docs/add-react-to-a-website.html#optional-try-react-with-jsx) on integrating JSX; otherwise, the [recommended JavaScript toolchains](https://reactjs.org/docs/create-a-new-react-app.html) handle it automatically.
-
-## Contributing
-
-The main purpose of this repository is to continue evolving React core, making it faster and easier to use. Development of React happens in the open on GitHub, and we are grateful to the community for contributing bugfixes and improvements. Read below to learn how you can take part in improving React.
-
-### [Code of Conduct](https://code.fb.com/codeofconduct)
-
-Facebook has adopted a Code of Conduct that we expect project participants to adhere to. Please read [the full text](https://code.fb.com/codeofconduct) so that you can understand what actions will and will not be tolerated.
-
-### [Contributing Guide](https://reactjs.org/docs/how-to-contribute.html)
-
-Read our [contributing guide](https://reactjs.org/docs/how-to-contribute.html) to learn about our development process, how to propose bugfixes and improvements, and how to build and test your changes to React.
-
-### Good First Issues
-
-To help you get your feet wet and get you familiar with our contribution process, we have a list of [good first issues](https://github.com/facebook/react/labels/good%20first%20issue) that contain bugs that have a relatively limited scope. This is a great place to get started.
-
-### License
-
-React is [MIT licensed](./LICENSE).
