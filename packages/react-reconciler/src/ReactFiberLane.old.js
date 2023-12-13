@@ -128,6 +128,12 @@ export const NoTimestamp = -1;
 let nextTransitionLane: Lane = TransitionLane1;
 let nextRetryLane: Lane = RetryLane1;
 
+/**
+ * 通常返回最右边的 lane，若只包含 transition 的 lanes, 则返回所有的 transition lanes
+ *
+ * @param {(Lanes | Lane)} lanes
+ * @returns {Lanes}
+ */
 function getHighestPriorityLanes(lanes: Lanes | Lane): Lanes {
   switch (getHighestPriorityLane(lanes)) {
     case SyncLane:
@@ -193,6 +199,7 @@ export function getNextLanes(root: FiberRoot, wipLanes: Lanes): Lanes {
 
   let nextLanes = NoLanes;
 
+  // markRootUpdated 和 markRootFinished 方法都会重置 suspendedLanes 和 pingedLanes
   const suspendedLanes = root.suspendedLanes;
   const pingedLanes = root.pingedLanes;
 
@@ -200,6 +207,7 @@ export function getNextLanes(root: FiberRoot, wipLanes: Lanes): Lanes {
   // even if the work is suspended.
   const nonIdlePendingLanes = pendingLanes & NonIdleLanes;
   if (nonIdlePendingLanes !== NoLanes) {
+    // 排除掉 suspendedLanes, 确保 suspendedLanes 执行时，没有更高优先级的更新
     const nonIdleUnblockedLanes = nonIdlePendingLanes & ~suspendedLanes;
     if (nonIdleUnblockedLanes !== NoLanes) {
       nextLanes = getHighestPriorityLanes(nonIdleUnblockedLanes);
@@ -248,6 +256,8 @@ export function getNextLanes(root: FiberRoot, wipLanes: Lanes): Lanes {
       // default updates do not support refresh transitions.
       (nextLane === DefaultLane && (wipLane & TransitionLanes) !== NoLanes)
     ) {
+      // 低优先级不会打断高优先级的更新，且仅为 DefaultLane 时不会打断 TransitionLanes
+      // x-todo: useEffect 好像是 DefaultLane
       // Keep working on the existing in-progress tree. Do not interrupt.
       return wipLanes;
     }
@@ -263,6 +273,8 @@ export function getNextLanes(root: FiberRoot, wipLanes: Lanes): Lanes {
     // and default updates, so they render in the same batch. The only reason
     // they use separate lanes is because continuous updates should interrupt
     // transitions, but default updates should not.
+
+    // x-todo: 意义在哪
     nextLanes |= pendingLanes & DefaultLane;
   }
 
@@ -522,6 +534,11 @@ export function pickArbitraryLane(lanes: Lanes): Lane {
   return getHighestPriorityLane(lanes);
 }
 
+/**
+ * 返回该 lanes 在赛道中最靠左的位置. 即 lanes 中最低的优先级
+ * @param {Lanes} lanes
+ * @returns
+ */
 function pickArbitraryLaneIndex(lanes: Lanes) {
   return 31 - clz32(lanes);
 }

@@ -461,6 +461,7 @@ export function processUpdateQueue<State>(
   renderLanes: Lanes,
 ): void {
   // This is always non-null on a ClassComponent or HostRoot
+  // x-todo: workInProgress.updateQueue 是浅拷贝的 current.updateQueue
   const queue: UpdateQueue<State> = (workInProgress.updateQueue: any);
 
   hasForceUpdate = false;
@@ -498,6 +499,7 @@ export function processUpdateQueue<State>(
     const current = workInProgress.alternate;
     if (current !== null) {
       // This is always non-null on a ClassComponent or HostRoot
+      // x-todo: 这里转移的意义是？
       const currentQueue: UpdateQueue<State> = (current.updateQueue: any);
       const currentLastBaseUpdate = currentQueue.lastBaseUpdate;
       if (currentLastBaseUpdate !== lastBaseUpdate) {
@@ -508,6 +510,7 @@ export function processUpdateQueue<State>(
         }
         currentQueue.lastBaseUpdate = lastPendingUpdate;
       }
+      // 转移之后 current.updateQueue 与 workInProgress.updateQueue 对象只是引用不同，其节点是完全相同的
     }
   }
 

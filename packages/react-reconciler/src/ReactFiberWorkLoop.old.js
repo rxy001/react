@@ -444,6 +444,18 @@ export function getCurrentTime() {
   return now();
 }
 
+/**
+ * 根据 fiber.mode，返回 lane
+ * 1. 同步模式，仅返回 SyncLane
+ * 2. 并发模式
+ *    - 若为渲染阶段的更新，将取当前渲染的最高 lane
+ *    - 若为并发渲染，将在同一事件中分配相同的 lane
+ *    - 源自 React 内部方法(如flushSync)的更新，跟踪使用的上下文变量返回 lane
+ *    - 源自 React 外部方法(如flushSync)的更新，根据事件的类型分配适当的 lane
+ * @export
+ * @param {Fiber} fiber
+ * @returns {Lane}
+ */
 export function requestUpdateLane(fiber: Fiber): Lane {
   // Special cases
   const mode = fiber.mode;
@@ -532,18 +544,6 @@ export function scheduleUpdateOnFiber(
   eventTime: number,
 ) {
   checkForNestedUpdates();
-
-  if (__DEV__) {
-    if (isRunningInsertionEffect) {
-      console.error('useInsertionEffect must not schedule updates.');
-    }
-  }
-
-  if (__DEV__) {
-    if (isFlushingPassiveEffects) {
-      didScheduleUpdateDuringPassiveEffects = true;
-    }
-  }
 
   // Mark that the root has a pending update.
   markRootUpdated(root, lane, eventTime);
@@ -838,6 +838,12 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
   // Flush any pending passive effects before deciding which lanes to work on,
   // in case they schedule additional work.
   const originalCallbackNode = root.callbackNode;
+
+  // 确保组件 rerender 后 PassiveEffect 都会执行.
+  // 在 concurrent mode 中, PassiveEffects 执行时机有两种
+  // 1. 由 SyncLanes 更新任务产生的 PassiveEffects 同步执行.
+  // 2. 其它优先级更新任务产生的 PassiveEffects 异步执行(PassiveEffect 宏任务).
+  // x-todo: 待确认第一条执行时机. PassiveEffects 的执行优先级
   const didFlushPassiveEffects = flushPassiveEffects();
   if (didFlushPassiveEffects) {
     // Something in the passive effect phase may have canceled the current task.
@@ -854,6 +860,8 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
 
   // Determine the next lanes to work on, using the fields stored
   // on the root.
+  // 时间切片分步执行 performConcurrentWorkOnRoot ，因此每次执行都需要获取 nextLanes
+  // x-todo: 还有其它作用
   let lanes = getNextLanes(
     root,
     root === workInProgressRoot ? workInProgressRootRenderLanes : NoLanes,
@@ -869,6 +877,8 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
   // TODO: We only check `didTimeout` defensively, to account for a Scheduler
   // bug we're still investigating. Once the bug in Scheduler is fixed,
   // we can remove this, since we track expiration ourselves.
+
+  // 目前启用时间切片的方法只有使用 transition 。
   const shouldTimeSlice =
     !includesBlockingLane(root, lanes) &&
     !includesExpiredLane(root, lanes) &&
@@ -1455,7 +1465,7 @@ function prepareFreshStack(root: FiberRoot, lanes: Lanes): Fiber {
     // $FlowFixMe Complains noTimeout is not a TimeoutID, despite the check above
     cancelTimeout(timeoutHandle);
   }
-
+  // bookmark
   if (workInProgress !== null) {
     let interruptedWork = workInProgress.return;
     while (interruptedWork !== null) {
@@ -1747,6 +1757,7 @@ function renderRootConcurrent(root: FiberRoot, lanes: Lanes) {
 
   // If the root or lanes have changed, throw out the existing stack
   // and prepare a fresh one. Otherwise we'll continue where we left off.
+  // x-todo：条件成立的情景
   if (workInProgressRoot !== root || workInProgressRootRenderLanes !== lanes) {
     if (enableUpdaterTracking) {
       if (isDevToolsPresent) {
