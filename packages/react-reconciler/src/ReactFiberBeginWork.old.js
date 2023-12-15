@@ -3709,6 +3709,9 @@ function beginWork(
     const oldProps = current.memoizedProps;
     const newProps = workInProgress.pendingProps;
 
+    // 这里涉及到 react 的优化策略
+    // 当父组件更新时，子辈组件无任何优化手段的情况下都会触发更新. 正是因为 oldProps !== newProps
+    // 这是由于其父组件函数的重新执行，生成了新的 ReactElement
     if (
       oldProps !== newProps ||
       hasLegacyContextChanged() ||

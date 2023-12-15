@@ -591,6 +591,8 @@ export function createFiberFromTypeAndProps(
 
   const fiber = createFiber(fiberTag, pendingProps, key, mode);
   fiber.elementType = type;
+
+  // 通常情况下 type === elementType. Lazy、Fragment 为 null
   fiber.type = resolvedType;
   fiber.lanes = lanes;
 

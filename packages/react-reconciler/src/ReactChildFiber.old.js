@@ -263,6 +263,7 @@ function resolveLazy(lazyType) {
 // a compiler or we can do it manually. Helpers that don't need this branching
 // live outside of this function.
 function ChildReconciler(shouldTrackSideEffects) {
+  // 收集删除的子组件. 并标记 fiber
   function deleteChild(returnFiber: Fiber, childToDelete: Fiber): void {
     if (!shouldTrackSideEffects) {
       // Noop.
@@ -1142,6 +1143,8 @@ function ChildReconciler(shouldTrackSideEffects) {
         if (elementType === REACT_FRAGMENT_TYPE) {
           if (child.tag === Fragment) {
             deleteRemainingChildren(returnFiber, child.sibling);
+
+            // FragmentFiber 的 pendingProps 为 FragmentElement.props.children
             const existing = useFiber(child, element.props.children);
             existing.return = returnFiber;
             if (__DEV__) {
@@ -1187,6 +1190,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
 
     if (element.type === REACT_FRAGMENT_TYPE) {
+      // FragmentFiber 的 pendingProps 为 FragmentElement.props.children
       const created = createFiberFromFragment(
         element.props.children,
         returnFiber.mode,
@@ -1319,6 +1323,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       throwOnInvalidObjectType(returnFiber, newChild);
     }
 
+    // 处理 string、number
     if (
       (typeof newChild === 'string' && newChild !== '') ||
       typeof newChild === 'number'
@@ -1340,6 +1345,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
 
     // Remaining cases are all treated as empty.
+    // null、undefined、‘’、boolean 视为空
     return deleteRemainingChildren(returnFiber, currentFirstChild);
   }
 
