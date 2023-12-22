@@ -344,6 +344,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       const oldIndex = current.index;
       if (oldIndex < lastPlacedIndex) {
         // This is a move.
+        // 向右移动了
         newFiber.flags |= Placement;
         return lastPlacedIndex;
       } else {
@@ -734,6 +735,13 @@ function ChildReconciler(shouldTrackSideEffects) {
     return knownKeys;
   }
 
+  // O(n) 的启发式算法
+  // 1. 不考虑跨层级的元素移动，即只会比较同一层级的元素。
+  // 2. 当某个元素类型发生变化时直接卸载，包括其子元素，生成新的树。
+  // 3. 在同一层级使用 key 属性标识哪些子元素在不同的渲染中可能是不变的。
+  // 在遍历 newChildren 时，当更早的遍历到在 oldChildren 中更靠后的元素时，那么说明该元素向左移动了，
+  // 同理可得当更晚的遍历到在 oldChildren 中更靠前的元素时，该元素向右移动了。React 就采用了后者。
+  // 新增和移动的 fiber，都将标记为 Placement，删除遍历过程中未匹配到的 oldFiber
   function reconcileChildrenArray(
     returnFiber: Fiber,
     currentFirstChild: Fiber | null,
@@ -768,20 +776,33 @@ function ChildReconciler(shouldTrackSideEffects) {
       }
     }
 
+    // newChildren 中第一个子 fiber
     let resultingFirstChild: Fiber | null = null;
+
+    // newChildren[newIdx -1] 的 fiber
+    // 作用：1.判断是否为链表头部找出第一个子 fiber，
+    // 2.previousNewFiber.sibling = newFiber, 串联 newFiber 链表。
     let previousNewFiber: Fiber | null = null;
 
     let oldFiber = currentFirstChild;
+
+    // 实际表示已遍历的 oldChilren 中最大的 index
     let lastPlacedIndex = 0;
+
+    // 遍历 newChildren 的索引
     let newIdx = 0;
     let nextOldFiber = null;
     for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
+      // 什么情况下 oldFiber.index 会大于 newIdx ?
+      // 例如：oldChildren 中 存在 null、undefined、boolean 值
       if (oldFiber.index > newIdx) {
         nextOldFiber = oldFiber;
         oldFiber = null;
       } else {
         nextOldFiber = oldFiber.sibling;
       }
+
+      // key 不同返回 null
       const newFiber = updateSlot(
         returnFiber,
         oldFiber,
@@ -800,6 +821,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       }
       if (shouldTrackSideEffects) {
         if (oldFiber && newFiber.alternate === null) {
+          // key 相同 elementType 不同
           // We matched the slot, but we didn't reuse the existing fiber, so we
           // need to delete the existing child.
           deleteChild(returnFiber, oldFiber);
@@ -820,6 +842,7 @@ function ChildReconciler(shouldTrackSideEffects) {
       oldFiber = nextOldFiber;
     }
 
+    // 当 newChildren 完全遍历结束后， 删除多余的 oldFiber
     if (newIdx === newChildren.length) {
       // We've reached the end of the new children. We can delete the rest.
       deleteRemainingChildren(returnFiber, oldFiber);
@@ -831,6 +854,7 @@ function ChildReconciler(shouldTrackSideEffects) {
     }
 
     if (oldFiber === null) {
+      // 在没有发生移动的情况下，处理新增的 reactElement
       // If we don't have any more existing children we can choose a fast path
       // since the rest will all be insertions.
       for (; newIdx < newChildren.length; newIdx++) {
@@ -1127,6 +1151,14 @@ function ChildReconciler(shouldTrackSideEffects) {
     return created;
   }
 
+  // 单个元素. 遍历 currentReturnFiber 的 children，首先查找出 key 相同 的 fiber，然后判读 fiber 与
+  // reactElement 两者的类型
+  // 1. Fragment 类型的 ReactElement，可通过 ReactElement.type 鉴别类型. Fragment 类型的 Fiber，其 type 以
+  // 及 elementType 都为 null，只能通过 tag 来鉴别其类型. 因此判断 current fiber 与 ReactElement
+  // 都为 Fragment 类型的条件是 ReactElement.type === REACT_FRAGMENT_TYPE && fiber.tag === Fragment
+  // 2. Lazy 类型 （TODO)
+  // 3. 其它类型的 ReactElement，则判断 element.type === fiber.element
+  // key 与类型完全相同，则复用 fiber.alternate，否则创建新的 fiber，newFiber 不存在 alternate
   function reconcileSingleElement(
     returnFiber: Fiber,
     currentFirstChild: Fiber | null,
@@ -1269,6 +1301,11 @@ function ChildReconciler(shouldTrackSideEffects) {
       newChild = newChild.props.children;
     }
 
+    // newChild.$$typeof 有三种，分别是
+    // 1. REACT_ELEMENT_TYPE: React.createElement() (jsxRuntime)
+    // 2. REACT_PORTAL_TYPE: ReactDOM.createPortal()
+    // 3. REACT_LAZY_TYPE: React.lazy()
+    // 还有一些这里没用到的其他类型...
     // Handle object types
     if (typeof newChild === 'object' && newChild !== null) {
       switch (newChild.$$typeof) {

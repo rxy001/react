@@ -448,10 +448,10 @@ export function getCurrentTime() {
  * 根据 fiber.mode，返回 lane
  * 1. 同步模式，仅返回 SyncLane
  * 2. 并发模式
- *    - 若为渲染阶段的更新，将取当前渲染的最高 lane
- *    - 若为并发渲染，将在同一事件中分配相同的 lane
- *    - 源自 React 内部方法(如flushSync)的更新，跟踪使用的上下文变量返回 lane
- *    - 源自 React 外部方法(如flushSync)的更新，根据事件的类型分配适当的 lane
+ *    - 若为 render 阶段的更新，将取当前渲染的最高 lane
+ *    - 若为 startTransition, 将在同一事件中分配相同的 lane
+ *    - 源自 React 内部方法(如 flushSync )的更新，跟踪使用的上下文变量返回 lane
+ *    - 源自 React 外部方法(如 clickCallback )的更新，根据事件的类型分配适当的 lane
  * @export
  * @param {Fiber} fiber
  * @returns {Lane}

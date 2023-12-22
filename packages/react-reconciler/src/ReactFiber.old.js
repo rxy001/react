@@ -784,6 +784,7 @@ export function createFiberFromDehydratedFragment(
   return fiber;
 }
 
+// pendingProps 为 portal.children
 export function createFiberFromPortal(
   portal: ReactPortal,
   mode: TypeOfMode,

@@ -392,6 +392,7 @@ export function renderWithHooks<Props, SecondArg>(
       current !== null && current.type !== workInProgress.type;
   }
 
+  // useFiber 构建 workInProgress 时会复用 current 的 memoizedState、updateQueue、lanes
   workInProgress.memoizedState = null;
   workInProgress.updateQueue = null;
   workInProgress.lanes = NoLanes;
@@ -634,9 +635,11 @@ export function resetHooksAfterThrow(): void {
 
 function mountWorkInProgressHook(): Hook {
   const hook: Hook = {
+    // 已渲染的 state
     memoizedState: null,
-
+    // 若存在跳过的 update，记录此时的 state，以便处理跳过的 uodate 时计算 state
     baseState: null,
+    // 优先级不够跳过的 update，环状链表
     baseQueue: null,
     queue: null,
 
@@ -672,12 +675,20 @@ function updateWorkInProgressHook(): Hook {
   }
 
   let nextWorkInProgressHook: null | Hook;
+
+  // 每次 renderWithHooks 执行结束以及处理 render 阶段的更新时
+  // 都会重置 workInProgressHook
   if (workInProgressHook === null) {
+    // renderWithHooks 调用初始阶段重重 memoizedState
+    // 非 render 阶段的更新时 memoizedState 都为 null
     nextWorkInProgressHook = currentlyRenderingFiber.memoizedState;
   } else {
+    // 为了构建 hooks 链表
     nextWorkInProgressHook = workInProgressHook.next;
   }
 
+  // 什么情况下 nextWorkInProgressHook !== null ?
+  // render 阶段的更新
   if (nextWorkInProgressHook !== null) {
     // There's already a work-in-progress. Reuse it.
     workInProgressHook = nextWorkInProgressHook;
@@ -740,11 +751,15 @@ function mountReducer<S, I, A>(
   }
   hook.memoizedState = hook.baseState = initialState;
   const queue: UpdateQueue<S, A> = {
+    // 本次更新将要处理的 update，环状链表
     pending: null,
+    // 插入的 update，环状链表
     interleaved: null,
     lanes: NoLanes,
     dispatch: null,
+    // 只会用于 setState 时计算 newState
     lastRenderedReducer: reducer,
+    // 只会用于 setState 时与 newState 进行比较, 若相等可提前结束避免重渲染
     lastRenderedState: (initialState: any),
   };
   hook.queue = queue;
@@ -842,6 +857,8 @@ function updateReducer<S, I, A>(
       } else {
         // This update does have sufficient priority.
 
+        // state 的最终结果跟 update 的时序相关，而非优先级.
+        // 并且 action 可能为函数，依赖前一个的 state 值，因此如果 newBaseQueueLast 不为 null时，需存储后续的所有 update
         if (newBaseQueueLast !== null) {
           const clone: Update<S, A> = {
             // This update is going to be committed so we never want uncommit
@@ -1516,11 +1533,15 @@ function mountState<S>(
   }
   hook.memoizedState = hook.baseState = initialState;
   const queue: UpdateQueue<S, BasicStateAction<S>> = {
+    // 本次更新将要处理的 update，环状链表
     pending: null,
+    // 插入的 update，环状链表
     interleaved: null,
     lanes: NoLanes,
     dispatch: null,
+    // 只会用于 setState 时计算 newState
     lastRenderedReducer: basicStateReducer,
+    // 只会用于 setState 时与 newState 进行比较, 若相等可提前结束避免重渲染
     lastRenderedState: (initialState: any),
   };
   hook.queue = queue;
@@ -2235,6 +2256,10 @@ function dispatchSetState<S, A>(
   queue: UpdateQueue<S, A>,
   action: A,
 ) {
+  // dispatchSetState 只有在函数式组件挂载时，才会绑定 fiber（以下称为 initialFiber）、queue,
+  // 因此每次调用 setState 参数 fiber 都是初次绑定的 initialFiber、queue，
+  // 而此时渲染到屏幕上的 fiber 可能为 initialFiber 或者 initialFiber.alternate
+
   if (__DEV__) {
     if (typeof arguments[3] === 'function') {
       console.error(
@@ -2256,9 +2281,13 @@ function dispatchSetState<S, A>(
   };
 
   if (isRenderPhaseUpdate(fiber)) {
+    // update 插入到 queue.pengding 中
     enqueueRenderPhaseUpdate(queue, update);
   } else {
     const alternate = fiber.alternate;
+
+    // initialFiber.lanes 只有在 initialFiber 成为 workInProgress 时才会在 beginWork 阶段情况清空
+    // x-todo: 什么情况下会同时为 NoLanes
     if (
       fiber.lanes === NoLanes &&
       (alternate === null || alternate.lanes === NoLanes)
@@ -2280,6 +2309,7 @@ function dispatchSetState<S, A>(
           // it, on the update object. If the reducer hasn't changed by the
           // time we enter the render phase, then the eager state can be used
           // without calling the reducer again.
+
           update.hasEagerState = true;
           update.eagerState = eagerState;
           if (is(eagerState, currentState)) {
@@ -2287,6 +2317,8 @@ function dispatchSetState<S, A>(
             // It's still possible that we'll need to rebase this update later,
             // if the component re-renders for a different reason and by that
             // time the reducer has changed.
+
+            // x-todo useState 的 reducer 不是一直都为 basicReducer?
             // TODO: Do we still need to entangle transitions in this case?
             enqueueConcurrentHookUpdateAndEagerlyBailout(
               fiber,
@@ -2306,6 +2338,7 @@ function dispatchSetState<S, A>(
       }
     }
 
+    // update 插入到 queue.interleaved 中
     const root = enqueueConcurrentHookUpdate(fiber, queue, update, lane);
     if (root !== null) {
       const eventTime = requestEventTime();
