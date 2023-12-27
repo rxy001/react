@@ -236,6 +236,7 @@ if (supportsMutation) {
         return;
       }
       while (node.sibling === null) {
+        // x-todo： node.return === null ?
         if (node.return === null || node.return === workInProgress) {
           return;
         }
@@ -640,6 +641,7 @@ function cutOffTailIfNeeded(
 }
 
 function bubbleProperties(completedWork: Fiber) {
+  // completedWork.alternate.child === completedWork.child，表示完全跳过 completedWork 子树的渲染.
   const didBailout =
     completedWork.alternate !== null &&
     completedWork.alternate.child === completedWork.child;
@@ -739,6 +741,7 @@ function bubbleProperties(completedWork: Fiber) {
         // so we should bubble those up even during a bailout. All the other
         // flags have a lifetime only of a single render + commit, so we should
         // ignore them.
+        // 删除非 Stasic tag
         subtreeFlags |= child.subtreeFlags & StaticMask;
         subtreeFlags |= child.flags & StaticMask;
 
@@ -1007,6 +1010,7 @@ function completeWork(
             markUpdate(workInProgress);
           }
         } else {
+          // 组件 mount 时并未标记 flags 为 Placement
           const instance = createInstance(
             type,
             newProps,
@@ -1244,6 +1248,7 @@ function completeWork(
       }
       return null;
     }
+
     case HostPortal:
       popHostContainer(workInProgress);
       updateHostContainer(current, workInProgress);

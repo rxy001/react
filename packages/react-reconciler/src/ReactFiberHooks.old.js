@@ -755,6 +755,7 @@ function mountReducer<S, I, A>(
     pending: null,
     // 插入的 update，环状链表
     interleaved: null,
+    // used for entangling transitions
     lanes: NoLanes,
     dispatch: null,
     // 只会用于 setState 时计算 newState
@@ -908,6 +909,8 @@ function updateReducer<S, I, A>(
   // Interleaved updates are stored on a separate queue. We aren't going to
   // process them during this render, but we do need to track which lanes
   // are remaining.
+
+  // render phase 产生的 update
   const lastInterleaved = queue.interleaved;
   if (lastInterleaved !== null) {
     let interleaved = lastInterleaved;
@@ -2031,6 +2034,7 @@ function startTransition(setPending, callback, options) {
     higherEventPriority(previousPriority, ContinuousEventPriority),
   );
 
+  // 上面的 setCurrentUpdatePriority, 使得 pending 的 update 优先级至少为 ContinuousEventPriority
   setPending(true);
 
   const prevTransition = ReactCurrentBatchConfig.transition;
@@ -2049,6 +2053,7 @@ function startTransition(setPending, callback, options) {
   }
 
   try {
+    // 此时 pending 的 update 与 callback 中产生的 update 的 lane 相同
     setPending(false);
     callback();
   } finally {
@@ -2282,6 +2287,7 @@ function dispatchSetState<S, A>(
 
   if (isRenderPhaseUpdate(fiber)) {
     // update 插入到 queue.pengding 中
+    // 此时该 queue 已经处理过了，将在 renderWithHooks 函数组件执行结束时中重启处理
     enqueueRenderPhaseUpdate(queue, update);
   } else {
     const alternate = fiber.alternate;
@@ -2339,6 +2345,7 @@ function dispatchSetState<S, A>(
     }
 
     // update 插入到 queue.interleaved 中
+    // x-todo: fiber 是 initialFiber, 那么如何给正确的 fiber (即与当前渲染所对应的)设置 lanes
     const root = enqueueConcurrentHookUpdate(fiber, queue, update, lane);
     if (root !== null) {
       const eventTime = requestEventTime();
