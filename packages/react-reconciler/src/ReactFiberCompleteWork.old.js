@@ -1010,7 +1010,6 @@ function completeWork(
             markUpdate(workInProgress);
           }
         } else {
-          // 组件 mount 时并未标记 flags 为 Placement
           const instance = createInstance(
             type,
             newProps,

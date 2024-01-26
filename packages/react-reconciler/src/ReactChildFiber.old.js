@@ -98,6 +98,7 @@ function coerceRef(
   element: ReactElement,
 ) {
   const mixedRef = element.ref;
+
   if (
     mixedRef !== null &&
     typeof mixedRef !== 'function' &&

@@ -687,8 +687,7 @@ function updateWorkInProgressHook(): Hook {
     nextWorkInProgressHook = workInProgressHook.next;
   }
 
-  // 什么情况下 nextWorkInProgressHook !== null ?
-  // render 阶段的更新
+  // x-todo: 什么情况下 nextWorkInProgressHook !== null ?
   if (nextWorkInProgressHook !== null) {
     // There's already a work-in-progress. Reuse it.
     workInProgressHook = nextWorkInProgressHook;
@@ -697,7 +696,6 @@ function updateWorkInProgressHook(): Hook {
     currentHook = nextCurrentHook;
   } else {
     // Clone from the current hook.
-
     if (nextCurrentHook === null) {
       throw new Error('Rendered more hooks than during the previous render.');
     }
@@ -910,7 +908,6 @@ function updateReducer<S, I, A>(
   // process them during this render, but we do need to track which lanes
   // are remaining.
 
-  // render phase 产生的 update
   const lastInterleaved = queue.interleaved;
   if (lastInterleaved !== null) {
     let interleaved = lastInterleaved;

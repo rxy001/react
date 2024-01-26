@@ -461,7 +461,7 @@ export function processUpdateQueue<State>(
   renderLanes: Lanes,
 ): void {
   // This is always non-null on a ClassComponent or HostRoot
-  // x-todo: workInProgress.updateQueue 是浅拷贝的 current.updateQueue
+  // workInProgress.updateQueue 是浅拷贝的 current.updateQueue
   const queue: UpdateQueue<State> = (workInProgress.updateQueue: any);
 
   hasForceUpdate = false;
